@@ -1,0 +1,37 @@
+{
+  "name": "openclaw-quota-pilot-monorepo",
+  "version": "0.3.6",
+  "private": true,
+  "description": "Zero-LLM quota monitoring and profile routing for OpenClaw in VS Code",
+  "license": "MIT",
+  "workspaces": [
+    "packages/openclaw-plugin",
+    "packages/vscode-extension"
+  ],
+  "scripts": {
+    "clean": "npm run clean --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run build && npm run test:unit --workspaces --if-present",
+    "verify": "npm run check:public && npm run typecheck && npm test && npm run validate:plugin && npm run package",
+    "check:public": "node scripts/check-public-safety.mjs",
+    "validate:versions": "node scripts/validate-release-version.mjs",
+    "validate:plugin": "npm run validate -w openclaw-quota-pilot",
+    "package:plugin": "npm pack ./packages/openclaw-plugin --pack-destination ./artifacts",
+    "package:vscode": "npm run package -w openclaw-quota-pilot-vscode",
+    "package": "npm run build && npm run package:plugin && npm run package:vscode",
+    "release:checksums": "bash scripts/create-checksums.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^3.6.2",
+    "esbuild": "^0.25.9",
+    "openclaw": "2026.7.1-2",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22.22.3"
+  }
+}

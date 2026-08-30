@@ -1,0 +1,26 @@
+name: Feature request
+description: Propose a focused improvement
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What operator workflow is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe observable behavior, not only an implementation idea.
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and compatibility impact
+      description: Does this touch credentials, RPC payloads, profile mutation, or OpenClaw compatibility?
+    validations:
+      required: true

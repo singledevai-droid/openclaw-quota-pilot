@@ -1,0 +1,136 @@
+{
+  "name": "openclaw-quota-pilot-vscode",
+  "displayName": "OpenClaw Quota Pilot",
+  "description": "OpenAI Codex quota and OpenClaw OAuth profile switching in the VS Code status bar",
+  "version": "0.3.6",
+  "publisher": "openclaw-community",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "openclaw",
+    "codex",
+    "openai",
+    "quota",
+    "oauth"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:quotaPilot.showMenu",
+    "onCommand:quotaPilot.refresh",
+    "onCommand:quotaPilot.toggleAuto",
+    "onCommand:quotaPilot.selectAgent",
+    "onCommand:quotaPilot.toggleAgentDetection",
+    "onCommand:quotaPilot.selectProfile",
+    "onCommand:quotaPilot.renameProfile",
+    "onCommand:quotaPilot.changePollInterval"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "quotaPilot.showMenu",
+        "title": "Quota Pilot: Show profiles"
+      },
+      {
+        "command": "quotaPilot.refresh",
+        "title": "Quota Pilot: Refresh quota"
+      },
+      {
+        "command": "quotaPilot.toggleAuto",
+        "title": "Quota Pilot: Toggle automatic routing"
+      },
+      {
+        "command": "quotaPilot.selectAgent",
+        "title": "Quota Pilot: Select OpenClaw agent"
+      },
+      {
+        "command": "quotaPilot.toggleAgentDetection",
+        "title": "Quota Pilot: Toggle terminal agent detection"
+      },
+      {
+        "command": "quotaPilot.selectProfile",
+        "title": "Quota Pilot: Select OpenAI profile"
+      },
+      {
+        "command": "quotaPilot.renameProfile",
+        "title": "Quota Pilot: Rename profile"
+      },
+      {
+        "command": "quotaPilot.changePollInterval",
+        "title": "Quota Pilot: Change refresh interval"
+      }
+    ],
+    "configuration": {
+      "title": "OpenClaw Quota Pilot",
+      "properties": {
+        "quotaPilot.openclawExecutable": {
+          "type": "string",
+          "default": "openclaw",
+          "description": "OpenClaw executable name or absolute path on the VS Code extension host."
+        },
+        "quotaPilot.agentId": {
+          "type": "string",
+          "default": "main",
+          "description": "Default OpenClaw agent. The active agent can also be changed from the Quota Pilot menu."
+        },
+        "quotaPilot.sessionKey": {
+          "type": "string",
+          "default": "",
+          "description": "Optional session override for the default agent. Agents selected from the menu use agent:<agentId>:main."
+        },
+        "quotaPilot.autoDetectAgent": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically follow the active terminal. Terminal names match agent IDs or their unique prefix (for example TG → tg-growth and WB → wb-assistant), then cwd and workspace are used as fallbacks."
+        },
+        "quotaPilot.pollIntervalSeconds": {
+          "type": "integer",
+          "default": 30,
+          "minimum": 30,
+          "maximum": 3600,
+          "description": "How often VS Code refreshes the status from the local OpenClaw plugin cache."
+        },
+        "quotaPilot.profileLabels": {
+          "type": "object",
+          "default": {},
+          "scope": "machine",
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": "Custom local labels keyed by OpenClaw profile ID. Labels can also be changed from the Quota Pilot menu."
+        },
+        "quotaPilot.gatewayTimeoutMs": {
+          "type": "integer",
+          "default": 10000,
+          "minimum": 2000,
+          "maximum": 60000,
+          "description": "Timeout for local OpenClaw Gateway calls."
+        },
+        "quotaPilot.showMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show PROFILE AUTO or PROFILE FIXED routing mode in the status bar. This is independent of agent auto-detection."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "vitest run",
+    "package": "vsce package --no-dependencies --allow-missing-repository --out ../../artifacts/openclaw-quota-pilot-vscode-0.3.6.vsix"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.95.0"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "id": "quota-pilot",
+  "name": "Quota Pilot",
+  "description": "Monitors OpenAI Codex quota and routes OpenClaw sessions across OAuth profiles without LLM calls",
+  "version": "0.3.6",
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "agentId": {
+        "type": "string",
+        "minLength": 1,
+        "default": "main"
+      },
+      "sessionKey": {
+        "type": "string",
+        "minLength": 1,
+        "default": "agent:main:main"
+      },
+      "pollIntervalSeconds": {
+        "type": "integer",
+        "minimum": 30,
+        "maximum": 3600,
+        "default": 30
+      },
+      "reservePercent": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100,
+        "default": 15
+      },
+      "switchHysteresisPercent": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 50,
+        "default": 5
+      },
+      "requestTimeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 15000,
+        "default": 4000
+      },
+      "autoEnabledByDefault": {
+        "type": "boolean",
+        "default": false
+      },
+      "openclawExecutable": {
+        "type": "string",
+        "minLength": 1,
+        "default": "openclaw"
+      },
+      "profileAliases": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "default": {}
+      }
+    }
+  },
+  "uiHints": {
+    "agentId": {
+      "label": "Agent ID"
+    },
+    "sessionKey": {
+      "label": "Default session key"
+    },
+    "pollIntervalSeconds": {
+      "label": "Quota poll interval (seconds)"
+    },
+    "reservePercent": {
+      "label": "Automatic switch reserve (%)"
+    },
+    "switchHysteresisPercent": {
+      "label": "Switch hysteresis (%)"
+    },
+    "requestTimeoutMs": {
+      "label": "Quota request timeout (ms)"
+    },
+    "autoEnabledByDefault": {
+      "label": "Enable automatic routing on first start"
+    },
+    "openclawExecutable": {
+      "label": "OpenClaw executable"
+    },
+    "profileAliases": {
+      "label": "Profile aliases"
+    }
+  }
+}
