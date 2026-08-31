@@ -1,11 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- Generate operator-facing GitHub Release descriptions from every changelog
+  section published since the previous tag instead of relying on GitHub's
+  pull-request-only automatic notes.
+- Document the current pinned installer version and make the release history
+  easier to find from the README.
+
 ## 0.3.9 - 2026-08-31
 
 - Replace the active profile's gray Quick Pick theme icon with a reliably
   colored green `✅` directly in the profile row label.
 - Keep all inactive profile icons and the blue automatic-switching pause icon
   unchanged.
+- Verify the release with 45 unit tests, type checking, plugin validation,
+  privacy scanning, packaging, CI, and CodeQL.
 
 ## 0.3.8 - 2026-08-31
 
@@ -13,6 +23,8 @@
   status-bar hover card.
 - Render the active profile's Quick Pick check icon with VS Code's passed-test
   green theme color.
+- This theme-icon approach was superseded by 0.3.9 because VS Code Quick Pick
+  rendered the requested color as gray.
 
 ## 0.3.7 - 2026-08-31
 

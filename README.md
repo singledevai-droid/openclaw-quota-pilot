@@ -1,5 +1,7 @@
 # OpenClaw Quota Pilot
 
+[![Latest release](https://img.shields.io/github/v/release/singledevai-droid/openclaw-quota-pilot)](https://github.com/singledevai-droid/openclaw-quota-pilot/releases/latest)
+
 Quota visibility and per-agent OpenAI profile routing for OpenClaw in VS Code.
 Quota Pilot shows Codex limits in the status bar, follows the agent used by the
 active terminal, and lets every agent keep an independent OAuth profile and
@@ -85,6 +87,8 @@ local OpenClaw installation. Automatic profile routing remains disabled after
 installation until the operator enables it.
 
 Read the detailed [installation and upgrade guide](docs/INSTALLATION.md).
+User-visible changes for every published version are recorded in the
+[changelog](CHANGELOG.md).
 
 ## Usage
 
