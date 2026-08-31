@@ -76,6 +76,35 @@ describe("status formatting", () => {
     expect(markdown).toContain("- 5-hour: 32%");
     expect(markdown).toContain("- Weekly: 74%");
     expect(markdown).toContain("- State: ACTIVE");
+    expect(markdown).toContain(
+      "🟢 **very-long-private-relay-profile@example.com** · **ACTIVE**",
+    );
+  });
+
+  it("does not add a green marker to an inactive profile", () => {
+    const status = {
+      agentId: "main",
+      sessionKey: "agent:main:main",
+      mode: "manual",
+      reservePercent: 15,
+      pollIntervalSeconds: 30,
+      profiles: [
+        {
+          label: "inactive@example.com",
+          active: false,
+          best: false,
+          usable: true,
+          fiveHour: { remainingPercent: 90 },
+          weekly: { remainingPercent: 80 },
+        },
+      ],
+      lastRefreshAt: null,
+      warning: null,
+    } as unknown as PilotStatus;
+
+    const markdown = buildTooltipMarkdown(status);
+    expect(markdown).toContain("**inactive@example.com**");
+    expect(markdown).not.toContain("🟢 **inactive@example.com**");
   });
 
   it("applies a local profile label without changing the profile ID", () => {

@@ -8,11 +8,13 @@ import {
 } from "./agent-detection.js";
 import { OpenClawClient } from "./openclaw-client.js";
 import { buildOAuthLoginCommand } from "./oauth-command.js";
+import { profileQuickPickLabel } from "./quick-pick-format.js";
 import {
   cachedStatusForTarget,
   statusCacheKey,
   targetCacheKey,
 } from "./status-cache.js";
+import { StatusBarTooltipController } from "./status-bar-tooltip.js";
 import {
   activeProfile,
   applyProfileLabels,
@@ -40,6 +42,10 @@ type PilotQuickPickItem = vscode.QuickPickItem & {
     | "profile";
   profileId?: string;
 };
+
+function profileQuickPickIcon(profile: QuotaProfile): vscode.ThemeIcon {
+  return new vscode.ThemeIcon(profile.usable ? "account" : "error");
+}
 
 function profileLabels(value: unknown): Record<string, string> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -92,9 +98,8 @@ function toQuickPickItems(
     action: "toggle-auto",
   };
   const profiles = status.profiles.map<PilotQuickPickItem>((profile) => ({
-    label: `${
-      profile.active ? "$(check)" : profile.usable ? "$(account)" : "$(error)"
-    } ${profile.label}`,
+    label: profileQuickPickLabel(profile),
+    ...(!profile.active ? { iconPath: profileQuickPickIcon(profile) } : {}),
     description: [
       profile.active ? "ACTIVE" : null,
       profile.best ? "BEST" : null,
@@ -171,6 +176,7 @@ export function activate(context: vscode.ExtensionContext): void {
   item.text = "$(loading~spin) Quota Pilot";
   item.tooltip = "Loading OpenClaw quota…";
   item.show();
+  const tooltipController = new StatusBarTooltipController(item);
 
   const client = new OpenClawClient(settings, output);
   const terminalOverrides = new WeakMap<vscode.Terminal, string>();
@@ -246,7 +252,7 @@ export function activate(context: vscode.ExtensionContext): void {
     item.text = formatStatusBar(status, settings().showMode);
     const tooltip = new vscode.MarkdownString(buildTooltipMarkdown(status));
     tooltip.isTrusted = false;
-    item.tooltip = tooltip;
+    tooltipController.update(tooltip);
 
     const active = activeProfile(status);
     if (!active || !active.usable) {
@@ -270,7 +276,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (!cached) {
       latestStatus = null;
       item.text = `$(loading~spin) ${target.agentId}`;
-      item.tooltip = `Loading quota for ${target.agentId}…`;
+      tooltipController.update(`Loading quota for ${target.agentId}…`);
       item.backgroundColor = undefined;
       return false;
     }
@@ -299,7 +305,9 @@ export function activate(context: vscode.ExtensionContext): void {
     const message = error instanceof Error ? error.message : String(error);
     output.appendLine(`[${new Date().toISOString()}] ERROR ${message}`);
     item.text = "$(error) Quota Pilot";
-    item.tooltip = `${message}\n\nOpen the OpenClaw Quota Pilot output for details.`;
+    tooltipController.update(
+      `${message}\n\nOpen the OpenClaw Quota Pilot output for details.`,
+    );
     item.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
     if (notify) void vscode.window.showErrorMessage(`Quota Pilot: ${message}`);
   };
@@ -361,13 +369,10 @@ export function activate(context: vscode.ExtensionContext): void {
     let selected = profile;
     if (!selected) {
       const choices = status.profiles.map((candidate) => ({
-        label: `${
-          candidate.active
-            ? "$(check)"
-            : candidate.usable
-              ? "$(account)"
-              : "$(error)"
-        } ${candidate.label}`,
+        label: profileQuickPickLabel(candidate),
+        ...(!candidate.active
+          ? { iconPath: profileQuickPickIcon(candidate) }
+          : {}),
         description: candidate.active
           ? "ACTIVE"
           : candidate.authStatus === "expired"
@@ -698,52 +703,57 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   const showMenu = async (): Promise<void> => {
-    const status = latestStatus ?? (await update(false, true));
-    if (!status) return;
-    const selection = await vscode.window.showQuickPick(
-      toQuickPickItems(
-        status,
-        settings().autoDetectAgent,
-        detectedAgentId,
-        manualOverrideAgentId(),
-        vscode.window.activeTerminal?.name ?? null,
-        detectionSource,
-      ),
-      {
-        title: `OpenClaw Quota Pilot · ${status.mode.toUpperCase()}`,
-        placeHolder: "Select an agent, change mode, or assign a profile",
-        matchOnDescription: true,
-        matchOnDetail: true,
-      },
-    );
-    if (!selection) return;
-    if (selection.action === "select-agent") {
-      await selectAgent();
-    } else if (selection.action === "resume-agent-detection") {
-      await resumeAgentDetection();
-    } else if (selection.action === "toggle-agent-detection") {
-      await toggleAgentDetection();
-    } else if (selection.action === "refresh") {
-      await vscode.window.withProgress(
+    tooltipController.suppressDuringInteraction();
+    try {
+      const status = latestStatus ?? (await update(false, true));
+      if (!status) return;
+      const selection = await vscode.window.showQuickPick(
+        toQuickPickItems(
+          status,
+          settings().autoDetectAgent,
+          detectedAgentId,
+          manualOverrideAgentId(),
+          vscode.window.activeTerminal?.name ?? null,
+          detectionSource,
+        ),
         {
-          location: vscode.ProgressLocation.Notification,
-          title: "Refreshing OpenAI quota",
-        },
-        async () => {
-          await update(true, true);
+          title: `OpenClaw Quota Pilot · ${status.mode.toUpperCase()}`,
+          placeHolder: "Select an agent, change mode, or assign a profile",
+          matchOnDescription: true,
+          matchOnDetail: true,
         },
       );
-    } else if (selection.action === "toggle-auto") {
-      await toggleAuto();
-    } else if (selection.action === "set-interval") {
-      await changePollInterval();
-    } else if (selection.action === "rename-profile") {
-      await renameProfile();
-    } else if (selection.profileId) {
-      const selected = status.profiles.find(
-        (profile) => profile.profileId === selection.profileId,
-      );
-      if (selected) await selectProfile(selected);
+      if (!selection) return;
+      if (selection.action === "select-agent") {
+        await selectAgent();
+      } else if (selection.action === "resume-agent-detection") {
+        await resumeAgentDetection();
+      } else if (selection.action === "toggle-agent-detection") {
+        await toggleAgentDetection();
+      } else if (selection.action === "refresh") {
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: "Refreshing OpenAI quota",
+          },
+          async () => {
+            await update(true, true);
+          },
+        );
+      } else if (selection.action === "toggle-auto") {
+        await toggleAuto();
+      } else if (selection.action === "set-interval") {
+        await changePollInterval();
+      } else if (selection.action === "rename-profile") {
+        await renameProfile();
+      } else if (selection.profileId) {
+        const selected = status.profiles.find(
+          (profile) => profile.profileId === selection.profileId,
+        );
+        if (selected) await selectProfile(selected);
+      }
+    } finally {
+      tooltipController.restoreAfterInteraction();
     }
   };
 
@@ -820,6 +830,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     new vscode.Disposable(() => {
       if (timer) clearInterval(timer);
+      tooltipController.dispose();
     }),
   );
 

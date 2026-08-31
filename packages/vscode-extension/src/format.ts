@@ -83,8 +83,11 @@ export function buildTooltipMarkdown(status: PilotStatus, now = Date.now()): str
     "",
   ];
   for (const profile of status.profiles) {
+    const heading = profile.active
+      ? `🟢 **${markdownEscape(profile.label)}** · **ACTIVE**`
+      : `**${markdownEscape(profile.label)}**`;
     lines.push(
-      `**${markdownEscape(profile.label)}**`,
+      heading,
       `- 5-hour: ${formatWindow("", profile.fiveHour, now).trim()}`,
       `- Weekly: ${formatWindow("", profile.weekly, now).trim()}`,
       `- State: ${markdownEscape(profileState(profile))}`,

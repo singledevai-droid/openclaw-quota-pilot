@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.3.9 - 2026-08-31
+
+- Replace the active profile's gray Quick Pick theme icon with a reliably
+  colored green `✅` directly in the profile row label.
+- Keep all inactive profile icons and the blue automatic-switching pause icon
+  unchanged.
+
+## 0.3.8 - 2026-08-31
+
+- Mark the active profile with a green dot and bold `ACTIVE` label in the
+  status-bar hover card.
+- Render the active profile's Quick Pick check icon with VS Code's passed-test
+  green theme color.
+
+## 0.3.7 - 2026-08-31
+
+- Suppress the status-bar tooltip while the profile menu and its nested actions
+  are open, preventing VS Code from reopening it when focus returns after a
+  click.
+- Restore the same tooltip after focus settles so it still appears on normal
+  pointer hover.
+
 ## 0.3.6 - 2026-08-30
 
 - Place the parent `auth --agent <id>` option before the `login` subcommand so

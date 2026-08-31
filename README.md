@@ -160,7 +160,7 @@ npm ci
 npm run verify
 ```
 
-`npm run verify` runs the privacy scan, type checks, 40 unit tests, plugin
+`npm run verify` runs the privacy scan, type checks, 45 unit tests, plugin
 validation, and both packaging jobs. Release artifacts are written to
 `artifacts/`.
 

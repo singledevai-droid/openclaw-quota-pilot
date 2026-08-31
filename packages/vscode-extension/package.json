@@ -2,7 +2,7 @@
   "name": "openclaw-quota-pilot-vscode",
   "displayName": "OpenClaw Quota Pilot",
   "description": "OpenAI Codex quota and OpenClaw OAuth profile switching in the VS Code status bar",
-  "version": "0.3.6",
+  "version": "0.3.9",
   "publisher": "openclaw-community",
   "license": "MIT",
   "engines": {
@@ -128,7 +128,7 @@
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:unit": "vitest run",
-    "package": "vsce package --no-dependencies --allow-missing-repository --out ../../artifacts/openclaw-quota-pilot-vscode-0.3.6.vsix"
+    "package": "vsce package --no-dependencies --allow-missing-repository --out ../../artifacts/openclaw-quota-pilot-vscode-0.3.9.vsix"
   },
   "devDependencies": {
     "@types/vscode": "^1.95.0"
