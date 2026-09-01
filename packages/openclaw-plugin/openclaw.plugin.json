@@ -2,7 +2,7 @@
   "id": "quota-pilot",
   "name": "Quota Pilot",
   "description": "Monitors OpenAI Codex quota and routes OpenClaw sessions across OAuth profiles without LLM calls",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "activation": {
     "onStartup": true
   },

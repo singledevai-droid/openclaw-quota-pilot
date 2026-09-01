@@ -1,6 +1,6 @@
 {
   "name": "openclaw-quota-pilot",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "Zero-LLM OpenAI quota monitoring and OAuth profile routing for OpenClaw",
   "type": "module",
   "license": "MIT",

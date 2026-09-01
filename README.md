@@ -25,6 +25,8 @@ that control in one local status-bar menu without using an LLM.
 - Follows the active integrated terminal by terminal name, cwd, workspace, or
   active file, with an immediate cached status while fresh data loads.
 - Keeps manual profile assignment and automatic routing independent per agent.
+- Supports one canonical OAuth pool in the default/main agent while secondary
+  agents inherit it and retain independent per-session selections.
 - Ranks healthy profiles by their weakest remaining quota window.
 - Opens a dedicated terminal for profile-scoped OAuth reauthorization.
 - Supports local profile aliases and a configurable 30–3600 second refresh.
@@ -164,7 +166,7 @@ npm ci
 npm run verify
 ```
 
-`npm run verify` runs the privacy scan, type checks, 45 unit tests, plugin
+`npm run verify` runs the privacy scan, type checks, unit tests, plugin
 validation, and both packaging jobs. Release artifacts are written to
 `artifacts/`.
 

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.3.10 - 2026-09-01
+
+- Increase the default local Gateway timeout from 10 to 30 seconds so shared
+  multi-agent OAuth profile probes can finish instead of leaving an old VS Code
+  snapshot visible.
+- Version the persisted VS Code status cache and discard unversioned or older
+  snapshots during extension upgrades.
+- Document the native OpenClaw model where secondary agents inherit the main
+  agent's OAuth pool while retaining independent per-session profile overrides.
 - Generate operator-facing GitHub Release descriptions from every changelog
   section published since the previous tag instead of relying on GitHub's
   pull-request-only automatic notes.

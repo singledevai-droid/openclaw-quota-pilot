@@ -21,7 +21,13 @@ openclaw gateway health
 openclaw plugins inspect quota-pilot --runtime --json
 ```
 
-Increase `quotaPilot.gatewayTimeoutMs` only if the Gateway is healthy but slow.
+The default `quotaPilot.gatewayTimeoutMs` is 30 seconds because a healthy Gateway can
+need more than 10 seconds to probe several inherited OAuth profiles. Increase it only
+if the Gateway is healthy and the Quota Pilot output still reports timeouts.
+
+Quota Pilot versions its persisted VS Code status cache. Updating the extension clears
+snapshots written by older cache schemas, so a removed OAuth profile cannot remain in
+the picker solely because an earlier Gateway request timed out.
 Do not repeatedly click profiles while one mutation is running.
 
 ## OAuth reports an unknown `--agent` option

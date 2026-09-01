@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   cachedStatusForTarget,
+  restoreStatusCache,
+  STATUS_CACHE_SCHEMA_VERSION,
   statusCacheKey,
   targetCacheKey,
 } from "../src/status-cache.js";
@@ -46,5 +48,19 @@ describe("status cache", () => {
     ).not.toBe(
       targetCacheKey({ agentId: "main", sessionKey: "agent:main:other" }),
     );
+  });
+
+  it("restores snapshots written by the current cache schema", () => {
+    const cache = restoreStatusCache(
+      { [statusCacheKey(main)]: main },
+      STATUS_CACHE_SCHEMA_VERSION,
+    );
+    expect(cache.get(statusCacheKey(main))).toBe(main);
+  });
+
+  it("discards snapshots from an older or unversioned extension cache", () => {
+    const saved = { [statusCacheKey(main)]: main };
+    expect(restoreStatusCache(saved, STATUS_CACHE_SCHEMA_VERSION - 1).size).toBe(0);
+    expect(restoreStatusCache(saved, undefined).size).toBe(0);
   });
 });

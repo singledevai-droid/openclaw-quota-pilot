@@ -11,6 +11,8 @@ import { buildOAuthLoginCommand } from "./oauth-command.js";
 import { profileQuickPickLabel } from "./quick-pick-format.js";
 import {
   cachedStatusForTarget,
+  restoreStatusCache,
+  STATUS_CACHE_SCHEMA_VERSION,
   statusCacheKey,
   targetCacheKey,
 } from "./status-cache.js";
@@ -75,7 +77,7 @@ function settings(): ExtensionSettings {
     autoDetectAgent: config.get<boolean>("autoDetectAgent", true),
     gatewayTimeoutMs: Math.max(
       2000,
-      Math.min(60000, config.get<number>("gatewayTimeoutMs", 10000)),
+      Math.min(60000, config.get<number>("gatewayTimeoutMs", 30000)),
     ),
     showMode: config.get<boolean>("showMode", true),
   };
@@ -188,13 +190,16 @@ export function activate(context: vscode.ExtensionContext): void {
     context.workspaceState.get<AgentSummary[]>("quotaPilot.agentsCache") ?? null;
   let agentsRequest: Promise<AgentSummary[]> | null = null;
   let latestStatus: PilotStatus | null = null;
-  const statusCache = new Map(
-    Object.entries(
-      context.workspaceState.get<Record<string, PilotStatus>>(
-        "quotaPilot.statusCache",
-        {},
-      ),
+  const statusCache = restoreStatusCache(
+    context.workspaceState.get<Record<string, PilotStatus>>(
+      "quotaPilot.statusCache",
+      {},
     ),
+    context.workspaceState.get<number>("quotaPilot.statusCacheSchemaVersion"),
+  );
+  void context.workspaceState.update(
+    "quotaPilot.statusCacheSchemaVersion",
+    STATUS_CACHE_SCHEMA_VERSION,
   );
   let timer: NodeJS.Timeout | null = null;
   let mutationInFlight = false;

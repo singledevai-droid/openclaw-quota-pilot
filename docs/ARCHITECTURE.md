@@ -26,13 +26,21 @@ tokens. The VS Code extension is untrusted with respect to credentials and
 receives only sanitized quota data. It never reads OpenClaw configuration,
 SQLite, environment credentials, or tokens.
 
-## Agent isolation
+## Shared profiles and agent isolation
 
 Agent discovery reads configured IDs and display names from OpenClaw config and
-returns no credentials. Profile status is resolved from each agent's own auth
-store. Routing state remains keyed by `agentId::sessionKey`, so assigning a
-profile to `main` cannot overwrite the assignment or mode for `tg-growth` or
-`wb-assistant`.
+returns no credentials. OpenClaw resolves each secondary agent's effective auth
+store by merging its local profiles over the default/main agent's profiles.
+Operators can therefore keep the canonical OAuth pool only in `main`; every
+secondary agent inherits that pool without copying refresh tokens. A local
+profile with the same ID overrides the inherited profile and should be avoided
+when one shared pool is intended.
+
+Routing state remains keyed by `agentId::sessionKey`, and the chosen
+`authProfileOverride` is written only to that session. Assigning a shared
+profile to `main` therefore cannot overwrite the assignment or mode for
+`tg-growth` or `wb-assistant`. OpenClaw's cross-agent OAuth refresh lock
+serializes refreshes for a shared profile.
 
 The agent inventory also returns sanitized workspace paths to the local VS Code
 extension. The extension compares the active integrated terminal cwd against

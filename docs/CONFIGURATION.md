@@ -54,7 +54,7 @@ has been verified manually.
 | `quotaPilot.autoDetectAgent` | `true` | Follow the active terminal/workspace agent. |
 | `quotaPilot.pollIntervalSeconds` | `30` | UI refresh interval, from 30 to 3600 seconds. |
 | `quotaPilot.profileLabels` | `{}` | Machine-local labels keyed by profile ID. |
-| `quotaPilot.gatewayTimeoutMs` | `10000` | Gateway CLI timeout, from 2000 to 60000 ms. |
+| `quotaPilot.gatewayTimeoutMs` | `30000` | Gateway CLI timeout, from 2000 to 60000 ms. The default covers shared-pool quota probes that can exceed 10 seconds. |
 | `quotaPilot.showMode` | `true` | Show `PROFILE AUTO` or `PROFILE FIXED`. |
 
 Leave `quotaPilot.sessionKey` empty unless the default agent needs a custom
