@@ -1,0 +1,37 @@
+name: Bug report
+description: Report a reproducible Quota Pilot defect
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include tokens, databases, configuration files, account IDs, or private email addresses.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Quota Pilot, OpenClaw, Node.js, VS Code, and operating system versions.
+      placeholder: Quota Pilot 0.3.6; OpenClaw 2026.7.1-2; Node 22.22.3; VS Code 1.95; Ubuntu
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Describe the actual and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Safe reproduction
+      description: Provide minimal steps with private identifiers redacted.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed credentials, account IDs, configuration files, databases, session files, and private emails.
+          required: true
