@@ -2,11 +2,22 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildOAuthLoginCommand,
+  needsOAuthLogin,
   resolveOAuthAgentId,
   shellQuote,
 } from "../src/oauth-command.js";
 
 describe("OAuth login command", () => {
+  it("adds a profile using the authenticated account ID without overriding existing accounts or mode", () => {
+    expect(buildOAuthLoginCommand("openclaw", "main")).toBe(
+      "'openclaw' 'models' 'auth' '--agent' 'main' 'login' '--provider' 'openai' '--method' 'oauth'",
+    );
+  });
+
+  it("offers reauthorization for a wrong identity but not a duplicate quota pool", () => {
+    expect(needsOAuthLogin({ authStatus: "missing", error: "profile-identity-mismatch" })).toBe(true);
+    expect(needsOAuthLogin({ authStatus: "missing", error: "duplicate-account-profile" })).toBe(false);
+  });
   it("targets exactly one agent and expired profile", () => {
     expect(
       buildOAuthLoginCommand(

@@ -1,6 +1,6 @@
 {
   "name": "openclaw-quota-pilot-monorepo",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "private": true,
   "description": "Zero-LLM quota monitoring and profile routing for OpenClaw in VS Code",
   "license": "MIT",

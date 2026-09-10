@@ -108,6 +108,12 @@ export function buildTooltipMarkdown(status: PilotStatus, now = Date.now()): str
 }
 
 export function profileDetail(profile: QuotaProfile): string {
+  if (profile.error === "profile-identity-mismatch") {
+    return "Wrong account signed in. Click to sign in to the account named by this profile; foreign quota is excluded from AUTO.";
+  }
+  if (profile.error === "duplicate-account-profile") {
+    return "Duplicate account: this is the same quota pool as another profile, not additional capacity.";
+  }
   if (!profile.usable) return profile.error ?? "Unavailable";
   return `${formatWindow("5h", profile.fiveHour)} · ${formatWindow("Week", profile.weekly)}`;
 }

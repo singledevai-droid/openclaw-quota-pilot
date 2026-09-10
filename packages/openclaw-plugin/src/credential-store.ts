@@ -8,6 +8,7 @@ import type {
   CredentialRecord,
   PluginLoggerLike,
 } from "./types.js";
+import { credentialIdentityError, tokenIdentity } from "./credential-identity.js";
 
 function normalizeTimestamp(value: unknown): number | null {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
@@ -39,15 +40,39 @@ export function credentialInventoryFromStore(
     ) {
       continue;
     }
+    const identity = tokenIdentity(raw.access);
+    const email = nullableString(raw.email);
+    const accountId = nullableString(raw.accountId);
     profiles.push({
       profileId,
       provider: "openai",
-      email: nullableString(raw.email),
+      email,
       accessToken: raw.access,
-      accountId: nullableString(raw.accountId),
+      accountId: accountId ?? identity.accountId,
       expiresAt: normalizeTimestamp(raw.expires),
       planHint: nullableString(raw.chatgptPlanType),
+      identityError: credentialIdentityError(profileId, email, accountId, identity),
     });
+  }
+
+  // One authenticated person/account is one quota pool, regardless of how many
+  // aliases or independently minted tokens were saved. Keep the canonical ID.
+  const identities = new Set<string>();
+  const canonicalFirst = [...profiles].sort((a, b) => {
+    const canonical = (p: CredentialRecord) =>
+      p.profileId.toLowerCase() === `openai:${p.email?.toLowerCase()}` ? 0 : 1;
+    return canonical(a) - canonical(b) || a.profileId.localeCompare(b.profileId);
+  });
+  for (const profile of canonicalFirst) {
+    if (profile.identityError) continue;
+    if (profile.expiresAt !== null && profile.expiresAt <= Date.now()) continue;
+    const identity = tokenIdentity(profile.accessToken);
+    const email = identity.email ?? profile.email?.toLowerCase();
+    const account = identity.accountId ?? profile.accountId;
+    if (!email || !account) continue;
+    const key = JSON.stringify([email, account]);
+    if (identities.has(key)) profile.identityError = "duplicate-account-profile";
+    else identities.add(key);
   }
 
   const configuredOrder = stringArray(store.order?.openai).filter((profileId) =>

@@ -83,17 +83,17 @@ export async function fetchQuotaProfile(
     checkedAt: now,
   };
 
-  if (expired) {
+  if (credential.identityError || expired) {
     return {
       ...base,
-      authStatus: "expired",
+      authStatus: credential.identityError ? "missing" : "expired",
       plan: credential.planHint,
       fiveHour: null,
       weekly: null,
       limitReached: false,
       usable: false,
       score: null,
-      error: "oauth-token-expired",
+      error: credential.identityError ?? "oauth-token-expired",
     };
   }
 

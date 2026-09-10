@@ -1,8 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { parseQuotaWindow } from "../src/wham.js";
+import { fetchQuotaProfile, parseQuotaWindow } from "../src/wham.js";
+import { parsePilotConfig } from "../src/config.js";
 
 describe("WHAM quota parsing", () => {
+  it.each(["profile-identity-mismatch", "duplicate-account-profile"])("does not fetch or route foreign/duplicate quota: %s", async (identityError) => {
+    const fetchFn = vi.fn();
+    const profile = await fetchQuotaProfile({
+      profileId: "openai:one@example.com", provider: "openai", email: "one@example.com",
+      accessToken: "test-access", accountId: "account-one", expiresAt: null,
+      planHint: "plus", identityError,
+    }, parsePilotConfig({}), Date.now(), fetchFn);
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(profile).toMatchObject({ usable: false, fiveHour: null, weekly: null, error: identityError });
+    expect(JSON.stringify(profile)).not.toContain("test-access");
+  });
   it("converts used percentage into remaining quota", () => {
     const now = 1_700_000_000_000;
     const result = parseQuotaWindow(

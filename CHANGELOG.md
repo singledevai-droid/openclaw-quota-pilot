@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## 0.3.15 - 2026-09-10
+
+- Add an Add OpenAI profile menu action and Command Palette command. The native
+  OAuth terminal shows the sign-in link and accepts the full redirect URL;
+  successful login refreshes the shared profile inventory automatically.
+- Derive saved profile IDs from the authenticated account for both add and
+  reauthorization flows, superseding the forced-ID reauthorization behavior
+  that could store one person's credentials under another person's profile.
+- Detect disagreement between profile ID, stored email, account header, and
+  OAuth claims. Hide foreign quota and exclude mismatched identities from AUTO.
+- Detect duplicate aliases for the same person/account without merging separate
+  users in a shared workspace. Recover an omitted account header from claims.
+- Keep existing routing modes and default models unchanged. Existing incorrect
+  credentials require an exact-account browser login; no credentials are
+  silently deleted or reassigned.
+- Support capability acceptance in both installers on newer OpenClaw versions,
+  while retaining compatibility with older CLIs that do not expose the flag.
+- Validation: backend/frontend typechecks and unit tests, public-safety gate,
+  release metadata checks, plugin validation, and TGZ/VSIX packaging.
+
 ## 0.3.14 - 2026-09-04
 
 - Remove deployment-specific agent names and profile labels from public

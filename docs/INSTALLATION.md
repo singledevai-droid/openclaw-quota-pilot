@@ -27,7 +27,7 @@ Pin a version when reproducibility matters:
 ```bash
 bash install-release.sh \
   --repo singledevai-droid/openclaw-quota-pilot \
-  --version v0.3.14
+  --version v0.3.15
 ```
 
 The installer uses the release's `SHA256SUMS`. It stops before installation if

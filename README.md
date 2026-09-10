@@ -28,7 +28,7 @@ that control in one local status-bar menu without using an LLM.
 - Supports one canonical OAuth pool in the default/main agent while secondary
   agents inherit it and retain independent per-session selections.
 - Ranks healthy profiles by their weakest remaining quota window.
-- Opens a dedicated terminal for profile-scoped OAuth reauthorization in the
+- Opens a dedicated terminal for account-derived OAuth add/reauthorization in the
   canonical credential owner's store.
 - Supports local profile aliases and a configurable 30–3600 second refresh.
 - Makes no model calls for display, polling, discovery, or switching.
@@ -136,19 +136,37 @@ It switches when the active profile reaches the configured reserve and a
 candidate improves the bottleneck by at least the hysteresis threshold.
 Defaults: 15% reserve and 5% hysteresis.
 
-## OAuth reauthorization
+## Adding profiles and reauthorization
 
-An expired profile is marked **CLICK TO REAUTHORIZE**. Selecting it starts:
+Select **Add OpenAI profile** in the status-bar menu, or run **Quota Pilot: Add
+OpenAI profile** from the Command Palette. A dedicated terminal opens the
+OpenClaw-owned OAuth flow:
 
 ```text
-openclaw models auth --agent <credential-owner> login --provider openai --method oauth --profile-id <profile>
+openclaw models auth --agent <credential-owner> login --provider openai --method oauth
 ```
 
-The OpenAI sign-in page cannot be forced to a specific email address. Sign in
-to the exact account shown by Quota Pilot. The command is profile-scoped and
-does not remove or overwrite other profiles. The routed agent and session do
-not change: reauthorization writes to the backend's `credentialOwnerAgentId`
-(`main` by default), so secondary agents inherit the refreshed credential.
+Open its sign-in link in your browser, choose the intended account, and paste
+the full redirect URL into the terminal prompt. OpenClaw owns PKCE, state
+validation, token exchange, and credential storage. Successful shell execution
+refreshes the profile list automatically; without shell integration, normal
+quota polling or closing the OAuth terminal refreshes it. No tokens pass
+through Quota Pilot or its logs. The routed agent, session, and AUTO/PINNED
+mode are unchanged. AUTO evaluates the new profile using the normal algorithm.
+
+Expired or identity-mismatched profiles are marked **CLICK TO REAUTHORIZE**.
+Use a private browser window to avoid silently signing in as another person.
+Both add and repair flows use the authenticated account's natural profile ID,
+not a forced profile-ID override: signing in to the wrong account cannot
+replace credentials under another person's email-named profile. Custom-ID
+aliases are not rewritten by repair; use the canonical account entry instead.
+
+Profiles whose stored email, email-shaped ID, or token identity disagree show
+**Wrong account signed in** with no foreign quota. Duplicate aliases for the
+same person/account are excluded from AUTO so the same quota is not counted
+as extra capacity. Separate people in a shared workspace remain separate.
+Reauthorization writes to the backend's `credentialOwnerAgentId` (`main` by
+default), so secondary agents inherit the refreshed credential.
 
 ## Configuration
 

@@ -5,7 +5,7 @@ export function shellQuote(value: string): string {
 export function buildOAuthLoginCommand(
   executable: string,
   agentId: string,
-  profileId: string,
+  profileId?: string,
 ): string {
   return [
     executable,
@@ -18,11 +18,16 @@ export function buildOAuthLoginCommand(
     "openai",
     "--method",
     "oauth",
-    "--profile-id",
-    profileId,
+    ...(profileId ? ["--profile-id", profileId] : []),
   ]
     .map(shellQuote)
     .join(" ");
+}
+
+export function needsOAuthLogin(profile: { authStatus: string; error: string | null }): boolean {
+  return profile.authStatus === "expired" ||
+    profile.error === "oauth-token-expired" ||
+    profile.error === "profile-identity-mismatch";
 }
 
 export function resolveOAuthAgentId(

@@ -14,10 +14,18 @@ VERSION="$(node -p "require('./package.json').version")"
 PLUGIN_ARCHIVE="$PROJECT_DIR/artifacts/openclaw-quota-pilot-$VERSION.tgz"
 VSIX="$PROJECT_DIR/artifacts/openclaw-quota-pilot-vscode-$VERSION.vsix"
 
+# Newer OpenClaw requires explicit capability acceptance. Older versions
+# do not expose this flag, so preserve compatibility with their installer.
+INSTALL_ARGS=()
+INSTALL_HELP="$(openclaw plugins install --help)"
+if [[ "$INSTALL_HELP" == *"--accept-capabilities"* ]]; then
+  INSTALL_ARGS+=(--accept-capabilities)
+fi
+
 if openclaw plugins inspect quota-pilot --json >/dev/null 2>&1; then
-  openclaw plugins install "npm-pack:$PLUGIN_ARCHIVE" --force
+  openclaw plugins install "npm-pack:$PLUGIN_ARCHIVE" --force "${INSTALL_ARGS[@]}"
 else
-  openclaw plugins install "npm-pack:$PLUGIN_ARCHIVE"
+  openclaw plugins install "npm-pack:$PLUGIN_ARCHIVE" "${INSTALL_ARGS[@]}"
 fi
 
 openclaw plugins enable quota-pilot

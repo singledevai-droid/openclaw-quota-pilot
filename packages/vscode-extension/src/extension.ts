@@ -9,6 +9,7 @@ import {
 import { OpenClawClient } from "./openclaw-client.js";
 import {
   buildOAuthLoginCommand,
+  needsOAuthLogin,
   resolveOAuthAgentId,
 } from "./oauth-command.js";
 import { profileQuickPickLabel } from "./quick-pick-format.js";
@@ -45,6 +46,7 @@ type PilotQuickPickItem = vscode.QuickPickItem & {
     | "refresh"
     | "toggle-auto"
     | "set-interval"
+    | "add-profile"
     | "rename-profile"
     | "profile";
   profileId?: string;
@@ -110,8 +112,8 @@ function toQuickPickItems(
     description: [
       profile.active ? "ACTIVE" : null,
       profile.best ? "BEST" : null,
-      profile.authStatus === "expired" ? "CLICK TO REAUTHORIZE" : null,
-      !profile.usable && profile.authStatus !== "expired" ? "UNAVAILABLE" : null,
+      needsOAuthLogin(profile) ? "CLICK TO REAUTHORIZE" : null,
+      !profile.usable && !needsOAuthLogin(profile) ? "UNAVAILABLE" : null,
       profile.plan?.toUpperCase() ?? null,
     ]
       .filter(Boolean)
@@ -172,6 +174,11 @@ function toQuickPickItems(
       label: "$(edit) Rename a profile",
       description: "Add or change a local label",
       action: "rename-profile",
+    },
+    {
+      label: "$(add) Add OpenAI profile",
+      description: "Sign in with a browser link and paste the redirect URL",
+      action: "add-profile",
     },
     ...profiles,
   ];
@@ -385,6 +392,31 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   };
 
+  const startOAuthLogin = async (profile?: QuotaProfile): Promise<void> => {
+    const status = latestStatus ?? (await update(false, true));
+    if (!status) return;
+    const target = currentTarget();
+    const owner = resolveOAuthAgentId(status.credentialOwnerAgentId, settings().agentId);
+    // No profile-id override: OpenClaw derives the ID from the authenticated
+    // account. A browser signed into a different person must not overwrite it.
+    const command = buildOAuthLoginCommand(settings().openclawExecutable, owner);
+    const workspaceDir = agentsCache?.find((agent) => agent.agentId === owner)?.workspaceDir;
+    const terminal = vscode.window.createTerminal({
+      name: profile ? `OAuth · ${profile.label}` : "OAuth · Add OpenAI profile",
+      ...(workspaceDir ? { cwd: workspaceDir } : {}),
+      message: [
+        profile ? `Sign in to the account for ${profile.profileId}.` : "Add an OpenAI profile.",
+        "Open the sign-in link below in your browser, select the intended account, then paste the full redirect URL at the prompt.",
+        "Use a private browser window if another account is already signed in.",
+        "The profile list refreshes after login. AUTO/PINNED mode is unchanged.",
+      ].join("\r\n"),
+    });
+    oauthTerminals.set(terminal, target);
+    terminalOverrides.set(terminal, target);
+    terminal.show(true);
+    terminal.sendText(command, true);
+  };
+
   const selectProfile = async (profile?: QuotaProfile): Promise<void> => {
     const status = latestStatus ?? (await update(false, true));
     if (!status) return;
@@ -397,7 +429,7 @@ export function activate(context: vscode.ExtensionContext): void {
           : {}),
         description: candidate.active
           ? "ACTIVE"
-          : candidate.authStatus === "expired"
+          : needsOAuthLogin(candidate)
             ? "REAUTHORIZE"
           : candidate.best
             ? "BEST"
@@ -414,31 +446,8 @@ export function activate(context: vscode.ExtensionContext): void {
       }))?.profile;
     }
     if (!selected) return;
-    if (selected.authStatus === "expired" || selected.error === "oauth-token-expired") {
-      const target = currentTarget();
-      const credentialOwnerAgentId = resolveOAuthAgentId(
-        status.credentialOwnerAgentId,
-        settings().agentId,
-      );
-      const command = buildOAuthLoginCommand(
-        settings().openclawExecutable,
-        credentialOwnerAgentId,
-        selected.profileId,
-      );
-      const workspaceDir = agentsCache?.find(
-        (agent) => agent.agentId === credentialOwnerAgentId,
-      )?.workspaceDir;
-      const terminal = vscode.window.createTerminal({
-        name: `OAuth · ${selected.label}`,
-        ...(workspaceDir ? { cwd: workspaceDir } : {}),
-        message: `Reauthorizing ${selected.label} in shared credential store ${credentialOwnerAgentId}. Routing target remains ${target.agentId}. Sign in to this exact OpenAI account in the browser.`,
-      });
-      oauthTerminals.set(terminal, target);
-      terminal.show(true);
-      terminal.sendText(command, true);
-      void vscode.window.showInformationMessage(
-        `Quota Pilot: OAuth started for ${selected.label} in shared store ${credentialOwnerAgentId}. Sign in to that exact account.`,
-      );
+    if (needsOAuthLogin(selected)) {
+      await startOAuthLogin(selected);
       return;
     }
     if (selected.active) return;
@@ -585,6 +594,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (!settings().autoDetectAgent) return;
     const agents = await loadAgents();
     const activeTerminal = vscode.window.activeTerminal;
+    if (activeTerminal && oauthTerminals.has(activeTerminal)) return;
     const terminalPath = terminalCwd(activeTerminal);
     const byTerminalName = detectAgentFromTerminalName(
       agents,
@@ -832,6 +842,8 @@ export function activate(context: vscode.ExtensionContext): void {
         await toggleAuto();
       } else if (selection.action === "set-interval") {
         await changePollInterval();
+      } else if (selection.action === "add-profile") {
+        await startOAuthLogin();
       } else if (selection.action === "rename-profile") {
         await renameProfile();
       } else if (selection.profileId) {
@@ -858,6 +870,7 @@ export function activate(context: vscode.ExtensionContext): void {
       toggleAgentDetection,
     ),
     vscode.commands.registerCommand("quotaPilot.selectProfile", () => selectProfile()),
+    vscode.commands.registerCommand("quotaPilot.addProfile", () => startOAuthLogin()),
     vscode.commands.registerCommand("quotaPilot.renameProfile", renameProfile),
     vscode.commands.registerCommand("quotaPilot.changePollInterval", changePollInterval),
     vscode.workspace.onDidChangeConfiguration((event) => {

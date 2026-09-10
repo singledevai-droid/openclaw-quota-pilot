@@ -16,6 +16,7 @@ export type CredentialRecord = {
   accountId: string | null;
   expiresAt: number | null;
   planHint: string | null;
+  identityError?: string | null;
 };
 
 export type CredentialInventory = {

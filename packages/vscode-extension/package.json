@@ -2,7 +2,7 @@
   "name": "openclaw-quota-pilot-vscode",
   "displayName": "OpenClaw Quota Pilot",
   "description": "OpenAI Codex quota and OpenClaw OAuth profile switching in the VS Code status bar",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "publisher": "openclaw-community",
   "license": "MIT",
   "engines": {
@@ -31,7 +31,8 @@
     "onCommand:quotaPilot.toggleAgentDetection",
     "onCommand:quotaPilot.selectProfile",
     "onCommand:quotaPilot.renameProfile",
-    "onCommand:quotaPilot.changePollInterval"
+    "onCommand:quotaPilot.changePollInterval",
+    "onCommand:quotaPilot.addProfile"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -71,6 +72,10 @@
       {
         "command": "quotaPilot.changePollInterval",
         "title": "Quota Pilot: Change refresh interval"
+      },
+      {
+        "command": "quotaPilot.addProfile",
+        "title": "Quota Pilot: Add OpenAI profile"
       }
     ],
     "configuration": {
@@ -94,7 +99,7 @@
         "quotaPilot.autoDetectAgent": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically follow the active terminal. Terminal names match agent IDs or a unique prefix (for example content → content-agent), then cwd and workspace are used as fallbacks."
+          "description": "Automatically follow the active terminal. Terminal names match agent IDs or a unique prefix (for example content \u2192 content-agent), then cwd and workspace are used as fallbacks."
         },
         "quotaPilot.pollIntervalSeconds": {
           "type": "integer",
@@ -133,7 +138,7 @@
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:unit": "vitest run",
-    "package": "vsce package --no-dependencies --allow-missing-repository --out ../../artifacts/openclaw-quota-pilot-vscode-0.3.14.vsix"
+    "package": "vsce package --no-dependencies --allow-missing-repository --out ../../artifacts/openclaw-quota-pilot-vscode-0.3.15.vsix"
   },
   "devDependencies": {
     "@types/vscode": "^1.95.0"

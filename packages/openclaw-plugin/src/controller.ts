@@ -453,7 +453,7 @@ export class QuotaPilotController {
           : null;
 
     return {
-      version: "0.3.14",
+      version: "0.3.15",
       mode: route.autoEnabled ? "auto" : "manual",
       routingMode,
       agentId: route.agentId,

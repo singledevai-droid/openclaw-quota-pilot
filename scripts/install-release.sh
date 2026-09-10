@@ -82,10 +82,18 @@ echo "Verifying release checksums..."
   sha256sum --check --strict SHA256SUMS
 )
 
+# Newer OpenClaw requires explicit capability acceptance. Older versions
+# do not expose this flag, so preserve compatibility with their installer.
+INSTALL_ARGS=()
+INSTALL_HELP="$(openclaw plugins install --help)"
+if [[ "$INSTALL_HELP" == *"--accept-capabilities"* ]]; then
+  INSTALL_ARGS+=(--accept-capabilities)
+fi
+
 if openclaw plugins inspect quota-pilot --json >/dev/null 2>&1; then
-  openclaw plugins install "npm-pack:$TEMP_DIR/$PLUGIN_NAME" --force
+  openclaw plugins install "npm-pack:$TEMP_DIR/$PLUGIN_NAME" --force "${INSTALL_ARGS[@]}"
 else
-  openclaw plugins install "npm-pack:$TEMP_DIR/$PLUGIN_NAME"
+  openclaw plugins install "npm-pack:$TEMP_DIR/$PLUGIN_NAME" "${INSTALL_ARGS[@]}"
 fi
 openclaw plugins enable quota-pilot
 openclaw gateway restart
