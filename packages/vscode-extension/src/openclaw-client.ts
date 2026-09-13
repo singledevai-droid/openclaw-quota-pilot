@@ -94,6 +94,20 @@ export class OpenClawClient {
     return this.call<SessionSummary[]>("quota-pilot.sessions", { agentId });
   }
 
+  async removeProfile(ownerAgentId: string, profileId: string): Promise<void> {
+    if (!ownerAgentId.trim() || !profileId.startsWith("openai:") || profileId.length <= 7) {
+      throw new Error("An exact OpenAI profile and credential owner are required");
+    }
+    // OpenClaw owns locking, shared-store cleanup and live auth refresh.
+    // Logout returns human-readable output, not a Gateway JSON envelope.
+    await this.execute<string>(
+      ["models", "auth", "logout", profileId, "--agent", ownerAgentId, "--yes"],
+      Math.max(this.settings().gatewayTimeoutMs + 2000, 32_000),
+      "models auth logout",
+      false,
+    );
+  }
+
   switchProfile(target: RouteTarget, profileId: string): Promise<PilotStatus> {
     return this.call<PilotStatus>(
       "quota-pilot.switch",
@@ -141,7 +155,7 @@ export class OpenClawClient {
     return this.execute<T>(args, timeoutMs + 2000, `gateway call ${method}`);
   }
 
-  private execute<T>(args: string[], timeoutMs: number, label: string): Promise<T> {
+  private execute<T>(args: string[], timeoutMs: number, label: string, json = true): Promise<T> {
     const settings = this.settings();
     this.output.appendLine(
       `[${new Date().toISOString()}] ${settings.openclawExecutable} ${label}`,
@@ -168,7 +182,7 @@ export class OpenClawClient {
             return;
           }
           try {
-            resolve(parseGatewayOutput(stdout) as T);
+            resolve((json ? parseGatewayOutput(stdout) : stdout) as T);
           } catch (parseError) {
             this.output.appendLine(`Unparsed response: ${stdout.slice(0, 2000)}`);
             reject(parseError);

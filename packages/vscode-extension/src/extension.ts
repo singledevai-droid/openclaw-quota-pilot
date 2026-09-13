@@ -7,6 +7,7 @@ import {
   resolveAgentId,
 } from "./agent-detection.js";
 import { OpenClawClient } from "./openclaw-client.js";
+import { removeProfileWithConfirmation } from "./remove-profile.js";
 import {
   buildOAuthLoginCommand,
   needsOAuthLogin,
@@ -47,6 +48,7 @@ type PilotQuickPickItem = vscode.QuickPickItem & {
     | "toggle-auto"
     | "set-interval"
     | "add-profile"
+    | "remove-profile"
     | "rename-profile"
     | "profile";
   profileId?: string;
@@ -179,6 +181,11 @@ function toQuickPickItems(
       label: "$(add) Add OpenAI profile",
       description: "Sign in with a browser link and paste the redirect URL",
       action: "add-profile",
+    },
+    {
+      label: "$(trash) Remove OpenAI profile",
+      description: "Remove saved sign-in from this OpenClaw installation",
+      action: "remove-profile",
     },
     ...profiles,
   ];
@@ -383,9 +390,10 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   const runMutation = async <T>(operation: () => Promise<T>): Promise<T> => {
+    if (mutationInFlight) throw new Error("Another profile operation is in progress. Please wait.");
     mutationInFlight = true;
-    await waitForCurrentUpdate();
     try {
+      await waitForCurrentUpdate();
       return await operation();
     } finally {
       mutationInFlight = false;
@@ -490,6 +498,69 @@ export function activate(context: vscode.ExtensionContext): void {
     } catch (error) {
       applyError(error, true);
       await update(false);
+    }
+  };
+
+  const removeProfile = async (): Promise<void> => {
+    const target = { ...currentTarget() };
+    const removalSettings = settings();
+    const removalClient = new OpenClawClient(() => removalSettings, output);
+    let removed = false;
+    try {
+      const status = await removalClient.status(target, true);
+      if (!status.profiles.length) {
+        void vscode.window.showInformationMessage("Quota Pilot: No saved OpenAI profiles to remove.");
+        return;
+      }
+      const choice = await vscode.window.showQuickPick(
+        applyProfileLabels(status, settings().profileLabels).profiles.map((profile) => ({
+          label: profile.label,
+          description: profile.active ? "ACTIVE — switch first" : profile.authStatus.toUpperCase(),
+          detail: profile.profileId,
+          profile,
+        })),
+        { title: "Remove OpenAI profile", placeHolder: "Choose the saved sign-in to remove" },
+      );
+      if (!choice) return;
+      removed = await runMutation(() => removeProfileWithConfirmation(
+        removalClient,
+        target,
+        choice.profile.profileId,
+        async (profile, owner) => (await vscode.window.showWarningMessage(
+          `Remove ${choice.profile.label}?`,
+          {
+            modal: true,
+            detail: `Profile: ${profile.profileId}\nCredential owner: ${owner}\n\nThis removes the saved sign-in from this OpenClaw installation, including shared copies. Other agents and sessions using it may need another profile. It does not delete the OpenAI account or cancel the subscription. Add the profile again with OAuth to restore access.`,
+          },
+          "Remove profile",
+        )) === "Remove profile",
+      ));
+      if (!removed) return;
+      // Shared credentials affect every target, not just the selected session.
+      // Drain older reads before clearing their cached inventory.
+      await Promise.allSettled([...updatesInFlight.values()]);
+      statusCache.clear();
+      persistStatusCache();
+      latestStatus = null;
+      agentsCache = null;
+      void context.workspaceState.update("quotaPilot.agentsCache", undefined);
+      const refreshed = await removalClient.status(target, true);
+      if (refreshed.profiles.some((profile) => profile.profileId === choice.profile.profileId)) {
+        throw new Error("OpenClaw finished logout, but the profile is still visible. Check the shared credential inventory before retrying.");
+      }
+      if (targetCacheKey(currentTarget()) === targetCacheKey(target)) applyStatus(refreshed);
+      else {
+        cacheStatus(refreshed);
+        await update(true, true);
+      }
+      void vscode.window.showInformationMessage(`Quota Pilot: Removed ${choice.profile.label}.`);
+    } catch (error) {
+      if (removed) {
+        const message = error instanceof Error ? error.message : String(error);
+        applyError(new Error(`Profile removal completed, but refreshing the list failed: ${message}`), true);
+      } else {
+        applyError(error, true);
+      }
     }
   };
 
@@ -844,6 +915,8 @@ export function activate(context: vscode.ExtensionContext): void {
         await changePollInterval();
       } else if (selection.action === "add-profile") {
         await startOAuthLogin();
+      } else if (selection.action === "remove-profile") {
+        await removeProfile();
       } else if (selection.action === "rename-profile") {
         await renameProfile();
       } else if (selection.profileId) {
@@ -871,6 +944,7 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand("quotaPilot.selectProfile", () => selectProfile()),
     vscode.commands.registerCommand("quotaPilot.addProfile", () => startOAuthLogin()),
+    vscode.commands.registerCommand("quotaPilot.removeProfile", removeProfile),
     vscode.commands.registerCommand("quotaPilot.renameProfile", renameProfile),
     vscode.commands.registerCommand("quotaPilot.changePollInterval", changePollInterval),
     vscode.workspace.onDidChangeConfiguration((event) => {

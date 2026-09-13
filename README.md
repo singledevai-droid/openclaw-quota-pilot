@@ -136,6 +136,23 @@ It switches when the active profile reaches the configured reserve and a
 candidate improves the bottleneck by at least the hysteresis threshold.
 Defaults: 15% reserve and 5% hysteresis.
 
+## Removing profiles
+
+Select **Remove OpenAI profile** in the status-bar menu, or run **Quota Pilot:
+Remove OpenAI profile** from the Command Palette. Choose the exact profile and
+confirm removal. Switch the current session to another profile first if the
+profile is active or selected. The extension rechecks the credential owner and
+selection immediately before deletion.
+
+Removal uses OpenClaw's native `models auth logout <profileId> --agent <owner>
+--yes` command after confirmation (requires a CLI with `models auth logout`,
+verified with OpenClaw 2026.9.3). This removes saved authentication, including
+shared copies on this installation; it is not just a hidden entry in the menu.
+Other agents or sessions using the same credentials may need another profile.
+The OpenAI account and subscription are not deleted. Sign in again using **Add
+OpenAI profile** to restore access. Profile lists refresh after removal; no
+automatic routing mode or default-model change is requested by the extension.
+
 ## Adding profiles and reauthorization
 
 Select **Add OpenAI profile** in the status-bar menu, or run **Quota Pilot: Add

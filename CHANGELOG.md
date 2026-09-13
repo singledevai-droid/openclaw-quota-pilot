@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 0.3.16 - 2026-09-13
+
+- Add **Remove OpenAI profile** to the status-bar menu and Command Palette.
+  Removal requires selecting an exact profile and confirming the shared-store
+  impact; it does not delete the OpenAI account or cancel its subscription.
+- Use native OpenClaw `models auth logout` for locked credential cleanup and
+  live auth refresh. Requires a CLI supporting that command (2026.9.3 verified).
+  No custom credential-file or SQLite writes are used.
+- Protect the current session's active/selected profile, recheck the credential
+  owner after confirmation, and invalidate cached profile lists after removal.
+  Switch to another profile before removing a current selection.
+- Prevent overlapping extension profile mutations. Preserve routing-mode and
+  default-model settings; other consumers of removed shared credentials may
+  need another profile. OAuth login restores a removed sign-in.
+- Validation covers cancellation, changed selections/owners, unavailable
+  inventory, native command failures, shell-safe argument passing, typechecks,
+  existing regression tests, and package build gates. No live user credentials
+  are removed during verification.
+
 ## 0.3.15 - 2026-09-10
 
 - Add an Add OpenAI profile menu action and Command Palette command. The native
