@@ -1,6 +1,3 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 
 import { listConfiguredAgents } from "./agents.js";
@@ -8,7 +5,7 @@ import { routeKey } from "./config.js";
 import { readOpenAiCredentialInventory } from "./credential-store.js";
 import { decideAutomaticRouting, rankQuotaProfiles } from "./scoring.js";
 import { PilotStateStore } from "./state-store.js";
-import { applyManagedSessionProfile } from "./runtime-routing.js";
+import { runtimeAuthEvidence, applyManagedSessionProfile } from "./runtime-routing.js";
 import type {
   CredentialInventory,
   AgentSummary,
@@ -23,8 +20,6 @@ import type {
 import { parseSessionInventory } from "./sessions.js";
 import { fetchAllQuotaProfiles } from "./wham.js";
 
-const execFileAsync = promisify(execFile);
-
 type AgentQuotaCache = {
   profiles: QuotaProfile[];
   configuredOrder: string[];
@@ -37,7 +32,6 @@ type SwitchSource = "manual" | "auto";
 export class QuotaPilotController {
   private readonly cache = new Map<string, AgentQuotaCache>();
   private readonly inFlightRefresh = new Map<string, Promise<AgentQuotaCache>>();
-  private readonly lastAppliedOrder = new Map<string, string>();
   private timer: NodeJS.Timeout | null = null;
   private stopped = false;
 
@@ -152,16 +146,12 @@ export class QuotaPilotController {
   }
 
   async listSessions(agentId: string): Promise<SessionSummary[]> {
-    const { stdout } = await execFileAsync(
-      this.config.openclawExecutable,
-      ["sessions", "--agent", agentId, "--json", "--limit", "all"],
-      {
-        timeout: 15_000,
-        maxBuffer: 2 * 1024 * 1024,
-        windowsHide: true,
-      },
-    );
-    const sessions = parseSessionInventory(JSON.parse(stdout), agentId);
+    // Use the host runtime: spawning the CLI here contends for SQLite locks.
+    const runtime = this.api.runtime.agent.session;
+    const inventoryRows = runtime.listSessionEntries({ agentId, readConsistency: "latest" });
+    const sessions = parseSessionInventory({ sessions: inventoryRows.map(({ sessionKey, entry }) => ({
+      ...entry, key: sessionKey, agentId,
+    })) }, agentId);
     const inventory = readOpenAiCredentialInventory(
       this.api.runtime.agent.resolveAgentDir(this.api.config, agentId),
       this.logger,
@@ -230,12 +220,6 @@ export class QuotaPilotController {
       );
     }
 
-    await this.applyAuthOrder(target.agentId, [
-      profileId,
-      ...cache.profiles
-        .map((candidate) => candidate.profileId)
-        .filter((candidateId) => candidateId !== profileId),
-    ]);
     await this.patchSessionProfile(target, profileId, "manual");
     const route: RouteState = {
       ...this.stateStore.getRoute(target, this.config),
@@ -324,8 +308,8 @@ export class QuotaPilotController {
   ): Promise<RouteState> {
     const activeProfileId = this.resolveActiveProfileId(route, cache, route);
     const decision = decideAutomaticRouting(cache.profiles, activeProfileId, this.config);
-    if (decision.orderedProfileIds.length > 0) {
-      await this.applyAuthOrder(route.agentId, decision.orderedProfileIds);
+    if (!cache.profiles.some((profile) => profile.usable && profile.profileId === decision.selectedProfileId)) {
+      throw new Error("No usable OpenAI profile available for AUTO routing");
     }
 
     const selectedProfileId = decision.selectedProfileId;
@@ -381,13 +365,14 @@ export class QuotaPilotController {
       readConsistency: "latest",
     });
     if (!existing) throw new Error(`OpenClaw session not found: ${target.sessionKey}`);
+    if (existing.authProfileOverride === profileId && existing.authProfileOverrideSource === "user") return;
 
     const updated = await this.api.runtime.agent.session.patchSessionEntry({
       agentId: target.agentId,
       sessionKey: target.sessionKey,
       readConsistency: "latest",
       preserveActivity: true,
-      replaceEntry: true,
+      replaceEntry: false,
       update: (entry) => {
         return applyManagedSessionProfile(entry as Record<string, unknown>, profileId);
       },
@@ -399,28 +384,6 @@ export class QuotaPilotController {
     ) {
       throw new Error(`OpenClaw did not apply profile ${profileId} to ${target.sessionKey}`);
     }
-  }
-
-  private async applyAuthOrder(agentId: string, profileIds: string[]): Promise<void> {
-    const signature = profileIds.join("\u0000");
-    if (this.lastAppliedOrder.get(agentId) === signature) return;
-    const args = [
-      "models",
-      "auth",
-      "order",
-      "set",
-      "--agent",
-      agentId,
-      "--provider",
-      "openai",
-      ...profileIds,
-    ];
-    await execFileAsync(this.config.openclawExecutable, args, {
-      timeout: 15_000,
-      maxBuffer: 1024 * 1024,
-      windowsHide: true,
-    });
-    this.lastAppliedOrder.set(agentId, signature);
   }
 
   private buildStatus(
@@ -453,7 +416,7 @@ export class QuotaPilotController {
           : null;
 
     return {
-      version: "0.3.16",
+      version: "0.3.17",
       mode: route.autoEnabled ? "auto" : "manual",
       routingMode,
       agentId: route.agentId,
@@ -461,6 +424,7 @@ export class QuotaPilotController {
       sessionKey: route.sessionKey,
       activeProfileId,
       selectedProfileId: activeProfileId,
+      ...runtimeAuthEvidence(entry, activeProfileId),
       bestProfileId,
       reservePercent: this.config.reservePercent,
       switchHysteresisPercent: this.config.switchHysteresisPercent,

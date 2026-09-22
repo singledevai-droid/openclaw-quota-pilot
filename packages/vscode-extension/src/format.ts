@@ -59,6 +59,7 @@ export function formatStatusBar(status: PilotStatus, showMode: boolean): string 
       status.routingMode ?? (status.mode === "auto" ? "auto" : "fallback");
     parts.push(`PROFILE ${routingMode.toUpperCase()}`);
   }
+  if (status.runtimeAuthStatus === "pending") parts.push("AUTH PENDING");
   return parts.join(" · ");
 }
 
@@ -66,8 +67,8 @@ function markdownEscape(value: string): string {
   return value.replace(/[|\\]/g, "\\$&");
 }
 
-function profileState(profile: QuotaProfile): string {
-  if (profile.active) return "ACTIVE";
+function profileState(profile: QuotaProfile, selectedOnly = false): string {
+  if (profile.active) return selectedOnly ? "SELECTED" : "ACTIVE";
   if (profile.best) return "BEST";
   if (!profile.usable) return profile.error ?? "UNAVAILABLE";
   return "READY";
@@ -87,15 +88,20 @@ export function buildTooltipMarkdown(status: PilotStatus, now = Date.now()): str
     `Refresh: ${status.pollIntervalSeconds}s`,
     "",
   ];
+  if (status.runtimeAuthStatus) {
+    lines.push(`Selected profile: ${markdownEscape(status.selectedProfileId ?? "none")}`,
+      `Runtime auth: ${status.effectiveProfileId ? markdownEscape(status.effectiveProfileId) + " (last recorded binding)" : "unverified — selection is not proof of runtime usage"}`,
+      ...(status.runtimeAuthStatus === "pending" ? ["Profile switch pending: recorded runtime differs from selection."] : []), "");
+  }
   for (const profile of status.profiles) {
     const heading = profile.active
-      ? `🟢 **${markdownEscape(profile.label)}** · **ACTIVE**`
+      ? `🟢 **${markdownEscape(profile.label)}** · **${status.runtimeAuthStatus ? "SELECTED" : "ACTIVE"}**`
       : `**${markdownEscape(profile.label)}**`;
     lines.push(
       heading,
       `- 5-hour: ${formatWindow("", profile.fiveHour, now).trim()}`,
       `- Weekly: ${formatWindow("", profile.weekly, now).trim()}`,
-      `- State: ${markdownEscape(profileState(profile))}`,
+      `- State: ${markdownEscape(profileState(profile, !!status.runtimeAuthStatus))}`,
       "",
     );
   }

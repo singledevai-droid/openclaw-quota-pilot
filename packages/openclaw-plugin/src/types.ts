@@ -89,6 +89,8 @@ export type PilotStatus = {
   sessionKey: string;
   activeProfileId: string | null;
   selectedProfileId: string | null;
+  effectiveProfileId?: string | null;
+  runtimeAuthStatus?: "unverified" | "recorded" | "pending";
   bestProfileId: string | null;
   reservePercent: number;
   switchHysteresisPercent: number;

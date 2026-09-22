@@ -29,3 +29,14 @@ describe("runtime-safe routing", () => {
     });
   });
 });
+
+import { runtimeAuthEvidence } from "../src/runtime-routing.js";
+it("never presents selection or lastGood as runtime evidence", () => {
+  expect(runtimeAuthEvidence({ authProfileOverride: "openai:a" }, "openai:a")).toEqual({ effectiveProfileId: null, runtimeAuthStatus: "unverified" });
+});
+it("reports a differing recorded binding as pending", () => {
+  expect(runtimeAuthEvidence({ cliSessionBindings: { codex: { sessionId: "s", authProfileId: "openai:a" } } }, "openai:b")).toEqual({ effectiveProfileId: "openai:a", runtimeAuthStatus: "pending" });
+});
+it("does not guess among conflicting or unrelated bindings", () => {
+  expect(runtimeAuthEvidence({ cliSessionBindings: { codex: { sessionId: "s", authProfileId: "openai:a" }, openai: { sessionId: "t", authProfileId: "openai:b" } } }, "openai:b").effectiveProfileId).toBeNull();
+});

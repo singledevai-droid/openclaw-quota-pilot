@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 0.3.17 - 2026-09-22
+
+- Fix AUTO preflight failures on recent OpenClaw: remove nested CLI auth-order
+  writes and use verified host session patches. Manual selection is session-scoped
+  too; neither mode rewrites the credential priority of unrelated sessions.
+- List sessions through the host runtime instead of spawning a competing CLI.
+- Discover modern keyed `agents.entries` and legacy `agents.list`; modern
+  entries win duplicate IDs. Preserve agent identity and workspace resolution.
+- Keep AUTO/PINNED choices unchanged. Reject AUTO if no usable profile exists
+  or the host does not verify its applied session selection.
+- Distinguish selected profiles from recorded runtime auth. Show pending when
+  a recorded CLI binding differs; show unverified when no evidence is exposed.
+  A stored selection is no longer labelled proof of live account usage.
+- Validate modern/legacy inventories, per-session and scheduled AUTO routing,
+  PINNED preservation, failed patches, unavailable profiles and runtime evidence.
+- Upgrade both backend and VS Code extension; restart gateway and reload window.
+
 ## 0.3.16 - 2026-09-13
 
 - Add **Remove OpenAI profile** to the status-bar menu and Command Palette.

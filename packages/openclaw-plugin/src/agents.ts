@@ -12,7 +12,11 @@ export function listConfiguredAgents(
 ): AgentDescriptor[] {
   const seen = new Set<string>();
   const agents: AgentDescriptor[] = [];
-  for (const entry of config.agents?.list ?? []) {
+  type AgentEntry = { id?: string; name?: string; identity?: { name?: string } };
+  const agentConfig = config.agents as { entries?: Record<string, AgentEntry>; list?: AgentEntry[] } | undefined;
+  // Modern entries take precedence over legacy list entries with the same ID.
+  const entries = Object.entries(agentConfig?.entries ?? {}).map(([id, entry]) => ({ ...entry, id }));
+  for (const entry of [...entries, ...(agentConfig?.list ?? [])]) {
     const agentId = entry.id?.trim();
     if (!agentId || seen.has(agentId)) continue;
     seen.add(agentId);

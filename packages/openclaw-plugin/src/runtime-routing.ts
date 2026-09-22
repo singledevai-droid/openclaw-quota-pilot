@@ -22,3 +22,17 @@ export function applyManagedSessionProfile(
   delete next.authProfileOverrideCompactionCount;
   return next;
 }
+
+/** A saved override is selection, not proof of which account ran a request. */
+export function runtimeAuthEvidence(entry: Record<string, unknown> | undefined, selected: string | null) {
+  const bindings = entry?.cliSessionBindings as Record<string, { sessionId?: string; authProfileId?: string }> | undefined;
+  const ids = [...new Set(Object.entries(bindings ?? {})
+    .filter(([backend, binding]) => ["codex", "codex-cli", "openai"].includes(backend) && binding.sessionId && binding.authProfileId?.startsWith("openai:"))
+    .map(([, binding]) => binding.authProfileId!))];
+  const effectiveProfileId = ids.length === 1 ? ids[0]! : null;
+  return {
+    effectiveProfileId,
+    runtimeAuthStatus: effectiveProfileId === null ? "unverified" as const
+      : effectiveProfileId === selected ? "recorded" as const : "pending" as const,
+  };
+}

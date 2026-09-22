@@ -122,3 +122,11 @@ describe("status formatting", () => {
     expect(labeled.profiles[0]?.profileId).toBe("openai:one@example.com");
   });
 });
+
+it("labels selection separately and exposes pending runtime auth", () => {
+  const status = { agentId: "main", sessionKey: "agent:main:main", mode: "auto", routingMode: "auto", selectedProfileId: "openai:new", effectiveProfileId: "openai:old", runtimeAuthStatus: "pending", profiles: [{ profileId: "openai:new", label: "new", active: true, usable: true, fiveHour: null, weekly: null }] } as unknown as PilotStatus;
+  expect(formatStatusBar(status, true)).toContain("AUTH PENDING");
+  expect(buildTooltipMarkdown(status)).toContain("SELECTED");
+  expect(buildTooltipMarkdown(status)).toContain("last recorded binding");
+  expect(buildTooltipMarkdown({ ...status, effectiveProfileId: null, runtimeAuthStatus: "unverified" })).toContain("selection is not proof");
+});

@@ -36,3 +36,15 @@ describe("listConfiguredAgents", () => {
     ]);
   });
 });
+
+describe("modern agent inventory", () => {
+  it("supports entries-only and treats the map key as authoritative", () => {
+    expect(listConfiguredAgents({ agents: { entries: { main: { name: "Primary" }, "content-agent": { id: "wrong", identity: { name: "Worker" } } } } } as any, "main")).toEqual([
+      { agentId: "main", label: "Primary", sessionKey: "agent:main:main" },
+      { agentId: "content-agent", label: "Worker", sessionKey: "agent:content-agent:main" },
+    ]);
+  });
+  it("deduplicates mixed entries/list with entries taking precedence", () => {
+    expect(listConfiguredAgents({ agents: { entries: { main: { name: "New" } }, list: [{ id: "main", name: "Old" }, { id: "support-agent" }] } } as any, "main").map(a => [a.agentId, a.label])).toEqual([["main", "New"], ["support-agent", "support-agent"]]);
+  });
+});
