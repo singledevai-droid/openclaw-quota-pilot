@@ -146,6 +146,6 @@
     "package": "vsce package --no-dependencies --allow-missing-repository --out ../../artifacts/openclaw-quota-pilot-vscode-0.3.17.vsix"
   },
   "devDependencies": {
-    "@types/vscode": "^1.95.0"
+    "@types/vscode": "^1.138.0"
   }
 }
